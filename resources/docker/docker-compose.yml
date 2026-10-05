@@ -1,0 +1,145 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: finwise-mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: finwise_db
+      MYSQL_USER: finwise_user
+      MYSQL_PASSWORD: FinWiseStrongPassword2026!
+      MYSQL_ROOT_PASSWORD: RootSecurePassword2026!
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+      - --max_connections=500
+      - --innodb_buffer_pool_size=512M
+      - --innodb_log_file_size=128M
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pRootSecurePassword2026!"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - finwise-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1024M
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: finwise-redis
+    restart: always
+    command: redis-server --appendonly yes --requirepass "RedisSecureAuth2026!"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "RedisSecureAuth2026!", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - finwise-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: finwise-rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: finwise_rabbit
+      RABBITMQ_DEFAULT_PASS: RabbitSecurePass2026!
+    ports:
+      - "5672:5672"     # AMQP protocol
+      - "15672:15672"   # Management Web UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - finwise-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: finwise-mailpit
+    restart: always
+    ports:
+      - "1025:1025"   # SMTP port
+      - "8025:8025"   # Web UI port
+    networks:
+      - finwise-network
+
+  finwise-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finwise-app
+    restart: on-failure
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: finwise_db
+      DB_USERNAME: finwise_user
+      DB_PASSWORD: FinWiseStrongPassword2026!
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: RedisSecureAuth2026!
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: finwise_rabbit
+      RABBITMQ_PASSWORD: RabbitSecurePass2026!
+      SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: 1025
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - finwise-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1536M
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+
+networks:
+  finwise-network:
+    driver: bridge

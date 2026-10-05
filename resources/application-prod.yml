@@ -1,0 +1,68 @@
+# ==============================================================================
+# FinWise AI — Production Environment Profile (prod)
+# ==============================================================================
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME:finwise_prod}?useSSL=true&requireSSL=true&verifyServerCertificate=true&serverTimezone=UTC&characterEncoding=UTF-8
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      pool-name: FinWise-Prod-HikariCP
+      maximum-pool-size: 30
+      minimum-idle: 10
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      leak-detection-threshold: 20000
+
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        generate_statistics: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: ${REDIS_SSL:true}
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+
+  mail:
+    host: ${SMTP_HOST:smtp.sendgrid.net}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USER}
+    password: ${SMTP_PASS}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+finwise:
+  security:
+    jwt:
+      secure-cookie: true
+      cookie-domain: ${PROD_DOMAIN:finwise.ai}
+
+logging:
+  level:
+    root: WARN
+    com.finwise: INFO
+    org.springframework.security: WARN
+    org.hibernate: ERROR
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{correlationId}] %-5level %logger{36} - %msg%n"

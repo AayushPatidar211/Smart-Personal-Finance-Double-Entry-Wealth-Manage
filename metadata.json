@@ -1,0 +1,6 @@
+{
+  "name": "FinWise AI — Smart Personal Finance Platform",
+  "description": "Enterprise-grade personal finance and expense tracking platform architecture, database schemas, and AI financial intelligence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
